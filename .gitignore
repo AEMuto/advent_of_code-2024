@@ -24,7 +24,6 @@ dist-ssr
 *.sln
 *.sw?
 
-src/*.ts
-src/**/*.ts
-src/**/*.txt
-src/*.txt
+# Ignore all .js and .txt files
+*.js
+*.txt
