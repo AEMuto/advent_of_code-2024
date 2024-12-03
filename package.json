@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "day_01": "tsc && node src/day_01/main.js",
-    "day_02": "tsc && node src/day_02/main.js"
+    "day_02": "tsc && node src/day_02/main.js",
+    "day_03": "tsc && node src/day_03/main.js"
   },
   "devDependencies": {
     "@eslint/js": "~9.10",
