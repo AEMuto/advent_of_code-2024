@@ -13,7 +13,25 @@ const PATH = "src/day_04/input.txt";
 if (!existsSync(PATH)) await downloadInput(4);
 
 const input = await readFile(PATH, "utf-8");
-const grid = input.split("\n").map((line) => line.split(""));
+const line_length = input.split("\n")[0].length;
+const grid = [
+  Array(line_length + 10).fill("."),
+  Array(line_length + 10).fill("."),
+  Array(line_length + 10).fill("."),
+  Array(line_length + 10).fill("."),
+  Array(line_length + 10).fill("."),
+  ...input.split("\n").map((line) =>
+    line
+      .padStart(line.length + 5, ".")
+      .padEnd(line.length + 10, ".")
+      .split(""),
+  ),
+  Array(line_length + 10).fill("."),
+  Array(line_length + 10).fill("."),
+  Array(line_length + 10).fill("."),
+  Array(line_length + 10).fill("."),
+  Array(line_length + 10).fill("."),
+];
 
 let xmas_count = 0;
 for (let x = 0; x < grid.length; x++) {
@@ -25,48 +43,21 @@ for (let x = 0; x < grid.length; x++) {
       // 2. Diagonal (Up-Right, Down-Right, Down-Left, Up-Left)
       // 3. Vertical (Up, Down)
       const res = {
-        right:
-          y + 3 < grid[x].length
-            ? `X${grid[x][y + 1]}${grid[x][y + 2]}${grid[x][y + 3]}`
-            : "",
-
-        down_right:
-          x + 3 < grid.length && y + 3 < grid[x].length
-            ? `X${grid[x + 1][y + 1]}${grid[x + 2][y + 2]}${grid[x + 3][y + 3]}`
-            : "",
-        down:
-          x + 3 < grid.length
-            ? `X${grid[x + 1][y]}${grid[x + 2][y]}${grid[x + 3][y]}`
-            : "",
-        down_left:
-          x + 3 < grid.length && y - 3 >= 0
-            ? `X${grid[x + 1][y - 1]}${grid[x + 2][y - 2]}${grid[x + 3][y - 3]}`
-            : "",
-
-        left:
-          y - 3 >= 0
-            ? `X${grid[x][y - 1]}${grid[x][y - 2]}${grid[x][y - 3]}`
-            : "",
-
-        up_left:
-          x - 3 >= 0 && y - 3 >= 0
-            ? `X${grid[x - 1][y - 1]}${grid[x - 2][y - 2]}${grid[x - 3][y - 3]}`
-            : "",
-        up:
-          x - 3 >= 0
-            ? `X${grid[x - 1][y]}${grid[x - 2][y]}${grid[x - 3][y]}`
-            : "",
-        up_right:
-          x - 3 >= 0 && y + 3 < grid[x].length
-            ? `X${grid[x - 1][y + 1]}${grid[x - 2][y + 2]}${grid[x - 3][y + 3]}`
-            : "",
+        right: `X${grid[x][y + 1]}${grid[x][y + 2]}${grid[x][y + 3]}`,
+        down_right: `X${grid[x + 1][y + 1]}${grid[x + 2][y + 2]}${grid[x + 3][y + 3]}`,
+        down: `X${grid[x + 1][y]}${grid[x + 2][y]}${grid[x + 3][y]}`,
+        down_left: `X${grid[x + 1][y - 1]}${grid[x + 2][y - 2]}${grid[x + 3][y - 3]}`,
+        left: `X${grid[x][y - 1]}${grid[x][y - 2]}${grid[x][y - 3]}`,
+        up_left: `X${grid[x - 1][y - 1]}${grid[x - 2][y - 2]}${grid[x - 3][y - 3]}`,
+        up: `X${grid[x - 1][y]}${grid[x - 2][y]}${grid[x - 3][y]}`,
+        up_right: `X${grid[x - 1][y + 1]}${grid[x - 2][y + 2]}${grid[x - 3][y + 3]}`,
       };
       Object.entries(res).forEach((entry) => {
         let [_, word] = entry;
         if (word === "XMAS") {
-            // console.log(
-            //   `XMAS found! Beginning at grid[${x}][${y}], direction: ${direction}`,
-            // );
+          // console.log(
+          //   `XMAS found! Beginning at grid[${x}][${y}], direction: ${direction}`,
+          // );
           xmas_count++;
         }
       });
@@ -102,23 +93,18 @@ let x_mas_count = 0;
 for (let x = 0; x < grid.length; x++) {
   for (let y = 0; y < grid[x].length; y++) {
     if (
-      grid[x][y] === "A" && // The center letter is A
-      x > 0 && // Not the first row
-      y > 0 && // Not the first column
-      x < grid.length - 1 && // Not the last row
-      y < grid[x].length - 1 // Not the last column
+      grid[x][y] === "A" // The center letter is A
     ) {
-      const [
-          top_left, top_right,
-          bottom_left, bottom_right
-      ] = [
-          grid[x - 1][y - 1], grid[x - 1][y + 1],
-          grid[x + 1][y - 1], grid[x + 1][y + 1]
+      const [top_left, top_right, bottom_left, bottom_right] = [
+        grid[x - 1][y - 1],
+        grid[x - 1][y + 1],
+        grid[x + 1][y - 1],
+        grid[x + 1][y + 1],
       ];
       const word = `${top_left}${top_right}${bottom_left}${bottom_right}`;
       if (valid_words.includes(word)) {
-          x_mas_count++;
-          // console.log(`X_MAS found! Beginning at grid[${x}][${y}]`);
+        x_mas_count++;
+        // console.log(`X_MAS found! Beginning at grid[${x}][${y}]`);
       }
     }
   }
