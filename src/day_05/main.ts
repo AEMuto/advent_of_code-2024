@@ -98,10 +98,9 @@ const PATH = "src/day_05/input.txt";
 
 if (!existsSync(PATH)) await downloadInput(5);
 const input = await readFile(PATH, "utf-8");
-const [rules, updates] = input
-  .split("\n\n")
-  .map((string) => string.split("\n"));
+const [rules, updates] = input.split("\n\n").map((string) => string.split("\n"));
 
+// From "1,2,3" get ["1|2","2|3"]
 const convert_update_to_rule_pair = (update: string) => {
   return update.split(",").reduce<string[]>((acc, curr, i, arr) => {
     if (i < arr.length - 1) acc.push(`${curr}|${arr[i + 1]}`);
@@ -109,7 +108,7 @@ const convert_update_to_rule_pair = (update: string) => {
   }, []);
 };
 
-let res_part1 = 0;
+let result_part1 = 0;
 const invalid_updates = [] as typeof updates;
 updates.forEach((update) => {
   const update_arr = update.split(",");
@@ -118,39 +117,16 @@ updates.forEach((update) => {
   if (all_exist) {
     const middle = +update_arr[Math.floor(update_arr.length / 2)];
     //console.log(`Found valid update: ${update}\nMiddle is: ${middle}`);
-    res_part1 += middle;
+    result_part1 += middle;
   } else {
     invalid_updates.push(update);
   }
 });
 
-console.log(res_part1);
+console.log(result_part1);
 
-console.log(`There was ${invalid_updates.length} invalid updates: `)
-console.log(invalid_updates)
-
-invalid_updates.forEach((update) => {
-  console.log("---");
-  console.log(update);
-  let valid_pair_count = 0;
-  let invalid_pair_count = 0; 
-  const valid_pair = [] as string[];
-  const invalid_pair = [] as string[];
-  convert_update_to_rule_pair(update).forEach((pair) => {
-    if (rules.includes(pair)) {
-      console.log(`✔️ ${pair} exists in rules array.`);
-      valid_pair_count++;
-      valid_pair.push(pair);
-    } else {
-      console.log(`❌ ${pair} doesn't exist in rules array.`);
-      invalid_pair_count++;
-      invalid_pair.push(pair);
-    }
-  });
-  console.log(`There was ${invalid_pair_count} invalid pairs:\n${invalid_pair}`);
-  console.log(`There was ${valid_pair_count} valid pairs:\n${valid_pair}`);
-  console.log("---");
-});
+console.log(`There was ${invalid_updates.length} invalid updates: `);
+console.log(invalid_updates);
 
 /**
  * --- Part Two ---
@@ -167,3 +143,38 @@ invalid_updates.forEach((update) => {
  *
  * Find the updates which are not in the correct order. What do you get if you add up the middle page numbers after correctly ordering just those updates?
  */
+
+const rules_arr = rules.map((rule) => rule.split("|").map((x) => +x));
+let result_part2 = 0;
+invalid_updates.forEach((update) => {
+  const update_arr = update.split(",").map((x) => +x);
+
+  // For each numbers of the update we match the number against the rules
+  // If we have 2,18,14 we get all rules beginning by 2
+  // and where the second number is either 2, 18 or 14.
+  // Then get all rules beginning by 18, etc...
+  const matching_rules = update_arr
+    .map((num) => {
+      return rules_arr.filter((rule) => rule[0] === num && update_arr.includes(rule[1]));
+    })
+    // There is always a number with no existing rules,
+    // and this is will be the last one in the corrected update.
+    .filter((rules) => rules.length > 0);
+
+  console.log(`\nFor update: ${update_arr}`);
+  // We just take the matching rules, sort them by desc length
+  // 
+  const corrected_update = matching_rules
+    .sort((a, b) => b.length - a.length)
+    .reduce<number[]>((acc, curr) => {
+      acc.push(curr[0][0]);
+      if (curr.length === 1) acc.push(curr[0][1]); // The last rule-pair give us the two last number of the corrected update
+      return acc;
+    }, []);
+
+  console.log(`Corrected array is: ${corrected_update}`);
+  const middle = corrected_update[Math.floor(corrected_update.length / 2)];
+  result_part2 += middle;
+});
+
+console.log(`\n---\nAnd the sum of each middle number of the corrected updates is: ${result_part2}`);
