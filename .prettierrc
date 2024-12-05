@@ -3,5 +3,21 @@
   "semi": true,
   "doubleQuotes": true,
   "tabWidth": 2,
-  "trailingComma": "all"
+  "trailingComma": "all",
+  "printWidth": 80,
+  "proseWrap": "always",
+  "overrides": [
+    {
+      "files": "*.ts",
+      "options": {
+        "jsxBracketSameLine": false,
+        "jsxSingleQuote": false,
+        "parser": "typescript",
+        "quoteProps": "as-needed",
+        "singleQuote": false,
+        "trailingComma": "all",
+        "printWidth": 80
+      }
+    }
+  ]
 }
