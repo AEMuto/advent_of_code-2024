@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { downloadInput } from "../utils/download.js";
-import deepEqual from "fast-deep-equal";
+import Guard from "./Guard.js";
 
 const PATH = "src/day_06/input.txt";
 
@@ -22,141 +22,9 @@ const input = await readFile(PATH, "utf-8");
 const map_layout = input.split("\n").map((x) => x.split(""));
 // const map_layout = example.map((x) => x.split(""));
 
-type Coordinates = { x: number; y: number };
-type CardinalPoints = "north" | "east" | "south" | "west";
-type Directions = Record<CardinalPoints, Coordinates>;
-
-class Guard {
-  start_pos: Coordinates;
-  start_map: string[][];
-  curr_map: string[][];
-  curr_pos: Coordinates;
-  arr_direction: Directions;
-  curr_direction: CardinalPoints;
-  round: number;
-  is_looping: boolean;
-  visited_states: Set<string>;
-  constructor(map_layout: string[][]) {
-    this.start_map = structuredClone(map_layout);
-    this.start_pos = this.get_start_pos(this.start_map);
-    this.curr_map = structuredClone(this.start_map);
-    this.curr_pos = structuredClone(this.start_pos);
-    this.arr_direction = {
-      north: { x: -1, y: 0 },
-      east: { x: 0, y: 1 },
-      south: { x: 1, y: 0 },
-      west: { x: 0, y: -1 },
-    };
-    this.curr_direction = "north";
-    this.round = 0;
-    this.is_looping = false;
-    this.visited_states = new Set();
-  }
-
-  change_start_map(new_map: string[][]) {
-    this.start_map = new_map;
-    this.reset();
-  }
-
-  reset() {
-    console.log("resetting guard");
-    this.curr_map = structuredClone(this.start_map);
-    this.curr_pos = structuredClone(this.start_pos);
-    this.curr_direction = "north";
-    this.round = 0;
-    this.is_looping = false;
-    this.visited_states.clear();
-  }
-
-  get_start_pos(map_layout: string[][]) {
-    return map_layout.reduce<{ x: number; y: number }>(
-      (acc, curr, i) => {
-        if (curr.includes("^")) {
-          acc["y"] = curr.indexOf("^");
-          acc["x"] = i;
-        }
-        return acc;
-      },
-      { x: 0, y: 0 },
-    );
-  }
-
-  look_ahead() {
-    const x_ahead = this.curr_pos.x + this.arr_direction[this.curr_direction].x;
-    const y_ahead = this.curr_pos.y + this.arr_direction[this.curr_direction].y;
-    const x_bound = this.curr_map.length - 1;
-    const y_bound = this.curr_map[0].length - 1;
-    if (x_ahead < 0 || y_ahead < 0 || x_ahead > x_bound || y_ahead > y_bound) return;
-    // console.log("Map ahead char is: ", this.curr_map[x_ahead][y_ahead]);
-    // console.log("x_ahead is: ", x_ahead);
-    // console.log("y_ahead is: ", y_ahead);
-    if (this.curr_map[x_ahead][y_ahead] === "#" || this.curr_map[x_ahead][y_ahead] === "O") {
-      // console.log("Obstacle ahead, turning right.");
-      this.turn();
-      // console.log(`New direction: ${this.curr_direction}`);
-    } // else console.log(this.curr_pos);
-  }
-
-  turn() {
-    switch (this.curr_direction) {
-      case "north":
-        this.curr_direction = "east";
-        break;
-      case "east":
-        this.curr_direction = "south";
-        break;
-      case "south":
-        this.curr_direction = "west";
-        break;
-      case "west":
-        this.curr_direction = "north";
-        break;
-      default:
-        throw new Error("Impossible Direction");
-    }
-  }
-
-  detect_out_of_bounds() {
-    const check =
-      this.curr_pos.x < 0 ||
-      this.curr_pos.x > this.curr_map.length - 1 ||
-      this.curr_pos.y < 0 ||
-      this.curr_pos.y > this.curr_map[0].length - 1;
-    if (check) {
-      console.log("Guard leaving the map.");
-    }
-    return check;
-  }
-
-  get_new_position() {
-    return {
-      x: this.curr_pos.x + this.arr_direction[this.curr_direction].x,
-      y: this.curr_pos.y + this.arr_direction[this.curr_direction].y,
-    };
-  }
-
-  move() {
-    // console.log(`Round N°${this.round}`);
-    this.round++;
-    const state = `${this.curr_pos.x},${this.curr_pos.y},${this.curr_direction}`;
-    if (this.visited_states.has(state)) {
-      // Loop detected
-      this.is_looping = true;
-      return;
-    } else {
-      this.visited_states.add(state);
-    }
-    // Mark the current position
-    this.curr_map[this.curr_pos.x][this.curr_pos.y] = "X";
-    this.look_ahead();
-    const new_position = this.get_new_position();
-    this.curr_pos = new_position;
-  }
-}
-
 const guard = new Guard(map_layout);
 
-while (!guard.detect_out_of_bounds()) {
+while (!guard.is_out_of_bounds) {
   guard.move();
 }
 
@@ -165,39 +33,47 @@ const result_part1 = guard.curr_map.reduce((acc, curr) => {
   return acc;
 }, 0);
 
-guard.reset();
+const og_map = guard.curr_map
+
+await writeFile("src/day_06/output.txt", guard.curr_map.map((x) => x.join("")).join("\n"));
 
 let valid_obstacles = 0;
-
+let exited = 0;
 for (let i = 0; i < map_layout.length; i++) {
   for (let j = 0; j < map_layout[0].length; j++) {
-    if (map_layout[i][j] === "#" || map_layout[i][j] === "^") continue;
-    else {
+    if (map_layout[i][j] !== "#" && map_layout[i][j] !== "^" && og_map[i][j] === "X") {
       const new_map = structuredClone(map_layout);
-      console.log("Placing new obstacle at: ", { x: j, y: i });
+      //console.log(new_map[i][j]);
+      console.log("Placing obstacle at: ", { x: j, y: i });
       new_map[i][j] = "O"; // Placing a new obstacle
-      guard.change_start_map(new_map);
-      while (!guard.detect_out_of_bounds() && !guard.is_looping) {
-        // console.log("Round N°", guard.round);
-        // console.log(guard.curr_pos);
-        // console.log("Is out of bound", guard.detect_out_of_bounds());
-        // console.log("Is Looping: ", guard.is_looping);
+      //console.log(new_map[i][j]);
+      guard.change_start_map(new_map); // Reset guard state with new map
+
+      do {
         guard.move();
-        if (guard.is_looping) {
-          console.log("Guard is looping.");
-          // console.log(guard.obstacles_list)
-          valid_obstacles++;
-          // await writeFile(`src/day_06/obstacle_${valid_obstacles}.txt`, guard.curr_map.map((x) => x.join("")).join("\n"));
-        }
+      } while (!guard.is_looping && !guard.is_out_of_bounds);
+
+      if (guard.is_looping) {
+        valid_obstacles++;
+        // Uncomment this if you want to save the maps for debugging
+        // await writeFile(`src/day_06/obstacle_${valid_obstacles}.txt`, guard.curr_map.map((x) => x.join("")).join("\n"));
+      }
+      if (guard.is_out_of_bounds) {
+        exited++;
       }
     }
   }
 }
 
-console.log(result_part1);
-console.log("Total valid obstacle is: ", valid_obstacles);
-
-await writeFile("src/day_06/output.txt", map_layout.map((x) => x.join("")).join("\n"));
+console.log("Result part 1: ", result_part1);
+console.log("Total exited: ", exited);
+console.log("Total valid obstacles: ", valid_obstacles);
+const total_possibilities = map_layout.reduce((acc, curr) => {
+  acc += curr.filter((char) => char === ".").length;
+  return acc;
+}, 0);
+console.log("Total possibilities: ", total_possibilities);
+console.log("Sum of results: ", exited + valid_obstacles);
 
 /**
  * --- Day 6: Guard Gallivant ---
