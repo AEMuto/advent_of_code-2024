@@ -9,7 +9,9 @@
     "day_03": "tsc && node src/day_03/main.js",
     "day_04": "tsc && node src/day_04/main.js",
     "day_05": "tsc && node src/day_05/main.js",
-    "day_06": "tsc && node src/day_06/main.js"
+    "day_06": "tsc && node src/day_06/main.js",
+    "day_07": "tsc && node src/day_07/main.js",
+    "dice_roll": "tsc && node src/utils/BayesianDiceCalc.js"
   },
   "devDependencies": {
     "@eslint/js": "~9.10",
