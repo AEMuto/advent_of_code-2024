@@ -1,7 +1,6 @@
 import { readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { downloadInput } from "../utils/download.js";
-import { get } from "http";
 
 const PATH = "src/day_08/input.txt";
 
