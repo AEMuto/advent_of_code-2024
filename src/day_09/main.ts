@@ -6,64 +6,74 @@ const PATH = "src/day_09/input.txt";
 
 if (!existsSync(PATH)) await downloadInput(9);
 const file = await readFile(PATH, "utf-8");
-// const input = file.split("").map((x) => parseInt(x, 10));
+const input = file.split("").map((x) => parseInt(x, 10));
 
 // 00...111...2...333.44.5555.6666.777.888899
-const input = "12345".split("").map((x) => parseInt(x, 10));
+// const input = "2333133121414131402".split("").map((x) => parseInt(x, 10));
 
-const to_blocks = (diskmap: number[]) =>
-  diskmap.map((x, i) =>
-    i % 2 === 0
-      ? Array(x)
-          .fill(i / 2)
-          .join("")
-      : Array(x).fill(".").join(""),
-  );
-//.filter(Boolean);
+const to_blocks = (diskmap: number[]) => {
+  const res = [];
+  for (let i = 0; i < diskmap.length; i++) {
+    // console.log(`\ni: ${i} | diskmap[i]: ${diskmap[i]}`);
 
-const calc_checksum = (input: Array<string | number>) => {
-  return input.reduce<number>((acc, curr, i, arr) => {
-    if (i > arr.length || typeof curr === "string") return acc;
-    else {
-      acc += i * curr;
-      return acc;
-    }
-  }, 0);
-};
+    if (i % 2 === 0) {
+      res.push(Array(diskmap[i]).fill(i / 2))
+      // console.log(`value: ${value} | diskmap[i]: ${diskmap[i]}`);
+      
+    } else if (diskmap[i] !== 0) {
+      res.push(Array(diskmap[i]).fill("."))
+      // console.log(`value: ${value} | diskmap[i]: ${diskmap[i]}`);
 
-const result_part1 = (input: number[]) => {
-  
-  const block_files = to_blocks(input)
-    .map((x) => x.split("").map((x) => (x === "." ? x : +x)))
-    .flat();
-
-  console.log(block_files);
-
-  const reversed_files = block_files.filter((x) => x !== ".").reverse();
-  console.log(reversed_files);
-  const free_space = block_files.filter((x) => x === ".").length;
-  console.log(free_space);
-
-  const result = [] as Array<string | number>;
-
-  for (let i = 0; i < block_files.length - free_space; i++) {
-    if (block_files[i] === ".") {
-      const num = reversed_files.shift();
-      num && result.push(num);
-    } else {
-      result.push(block_files[i]);
     }
   }
+  // console.log(res);
+  return res.flat();
+};
 
-  console.log(result);
-  return calc_checksum(result);
+// console.log(to_blocks(input));
+
+const calc_checksum = (input: Array<number>) => {
+  let res = 0;
+  for (let i = 0; i < input.length; i++) {
+    res += input[i] * i;
+  }
+  return res;
+};
+
+const findLastNumIndex = (block_files: (string | number)[]) => {
+  for (let i = block_files.length - 1; i >= 0; i--) {
+    if (typeof block_files[i] === "number") return i;
+  }
+}
+
+
+const result_part1 = async (input: number[]) => {
+  const block_files = to_blocks(input)
+
+  await writeFile("src/day_09/blockfiles.txt", block_files.join(""));
+  console.log(`block_files length (original): ${block_files.length}`);
+  const length = block_files.length;
+  for (let i = 0; i < length; i++) {
+    if (block_files[i] === ".") {
+      const last_num_index = findLastNumIndex(block_files);
+      if (last_num_index && last_num_index < i) break;
+      if (last_num_index) {
+        const temp = block_files[i];
+        block_files[i] = block_files[last_num_index];
+        block_files[last_num_index] = temp;
+      }
+    }
+  }
+  console.log(`block_files length (sorted): ${block_files.length}`);
+  await writeFile("src/day_09/blockfiles_sorted.txt", block_files.join(""));
+  return calc_checksum(block_files.filter(x=>typeof x === "number"));
 };
 
 const input_1 = structuredClone(input);
 const input_2 = structuredClone(input);
 
 console.time("part1");
-console.log(result_part1(input_1));
+console.log(await result_part1(input_1));
 console.timeEnd("part1");
 
 // console.log(
@@ -125,9 +135,9 @@ const result_part2 = (input: number[]) => {
     .split("")
     .map((x) => (x !== "." ? +x : x));
   // console.log(res);
-  return calc_checksum(res);
+  //return calc_checksum(res);
 };
 
-console.time("part2");
-console.log(result_part2(input_2));
-console.timeEnd("part2");
+// console.time("part2");
+// console.log(result_part2(input_2));
+// console.timeEnd("part2");
