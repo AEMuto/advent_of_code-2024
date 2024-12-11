@@ -13,6 +13,8 @@
     "day_07": "tsc && node src/day_07/main.js",
     "day_08": "tsc && node src/day_08/main.js",
     "day_09": "tsc && node src/day_09/main.js",
+    "day_10": "tsc && node src/day_10/main.js",
+    "day_11": "tsc && node src/day_11/main.js",
     "dice_roll": "tsc && node src/utils/BayesianDiceCalc.js"
   },
   "devDependencies": {
