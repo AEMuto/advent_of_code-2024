@@ -134,3 +134,4 @@ console.log(await result_part2(input));
 console.timeEnd("part2");
 
 // 6352041120068 too low
+// 6353648390778 ✔️ 2024-12-10
