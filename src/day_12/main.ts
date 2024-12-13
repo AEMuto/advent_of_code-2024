@@ -41,6 +41,10 @@ type RegionMetrics = {
 
 type RegionsData = Record<string, RegionMetrics[]>;
 
+// TODO: Want to make a count corners instead of sides
+// This should be more efficient but I will need to add
+// diagonals directions to the DIRECTIONS array
+
 const countSides = (boundary: number[][], symbol: string) => {
   if (boundary.length === 0) return 0;
   // {down[y], right[x], up[y], left[x]} structure to store "sides"
