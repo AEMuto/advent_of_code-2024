@@ -19,18 +19,28 @@ const example = [
   "p=7,3 v=-1,2",
   "p=2,4 v=2,-3",
   "p=9,5 v=-3,-3",
-].map((line) => line.split(/[^\d-]/gm).filter(Boolean).map(Number));
+].map((line) =>
+  line
+    .split(/[^\d-]/gm)
+    .filter(Boolean)
+    .map(Number),
+);
 
-const input = file.split("\n").map((line) => line.split(/[^\d-]/gm).filter(Boolean).map(Number));
-// console.log(example);
+const input = file.split("\n").map((line) =>
+  line
+    .split(/[^\d-]/gm)
+    .filter(Boolean)
+    .map(Number),
+);
 
 const GRID_X = 101;
 const GRID_Y = 103;
 
-// elements can be string or number
 type gridType = (string | number)[][];
 
-const grid:gridType = Array.from({ length: GRID_Y }, () => Array.from({ length: GRID_X }, () => " "));
+const grid: gridType = Array.from({ length: GRID_Y }, () =>
+  Array.from({ length: GRID_X }, () => " "),
+);
 
 type Coordinates = {
   x: number;
@@ -63,7 +73,7 @@ class Robot {
     this.position = { x: nx, y: ny };
   }
 
-  time_shift(time:number) {
+  time_shift(time: number) {
     const { x, y } = this.position;
     const { x: dx, y: dy } = this.velocity;
     let nx = Math.abs((x + dx * time) % this.cols);
@@ -87,62 +97,50 @@ class Robot {
   }
 }
 
+function calc_safety_score(coordinates: Coordinates[], grid: gridType) {
+  const middle_x = Math.floor(grid[0].length / 2);
+  const middle_y = Math.floor(grid.length / 2);
+
+  const robots_by_quadrants = {
+    top_left: coordinates.filter(({ x, y }) => x < middle_x && y < middle_y).length,
+    top_right: coordinates.filter(({ x, y }) => x > middle_x && y < middle_y).length,
+    bottom_left: coordinates.filter(({ x, y }) => x < middle_x && y > middle_y).length,
+    bottom_right: coordinates.filter(({ x, y }) => x > middle_x && y > middle_y).length,
+  };
+
+  return (
+    robots_by_quadrants.top_left *
+    robots_by_quadrants.top_right *
+    robots_by_quadrants.bottom_left *
+    robots_by_quadrants.bottom_right
+  );
+}
+
 const robots = input.map(([x, y, dx, dy]) => new Robot({ x, y }, { x: dx, y: dy }, grid));
 
-// const start_grid = structuredClone(grid)
+const safety_score = { score: 0, frame: 0 };
 
-// robots.forEach((robot) => {
-//   const { x, y } = robot.position;
-//   let curr = start_grid[y][x];
-//   if (typeof curr === "string") start_grid[y][x] = 1;
-//   else {
-//     curr++;
-//     start_grid[y][x] = curr;
-//   }
-// });
-
-// console.log("\nStart grid:");
-// console.log(start_grid.map((row) => row.join("")).join("\n"));
-
-for (let i = 0; i < 1850; i++) {
+// Tried math but it was too hard, so I just brute forced it
+// Here we calculate the safety score for each frame and save the best one
+for (let i = 0; i < 10000; i++) {
   const canvas = structuredClone(grid);
-  robots.forEach((robot) => {robot.move(); robot.draw(canvas)});
-  await writeFile(`src/day_14/canvas/canvas_${i}.txt`, canvas.map((row) => row.join("")).join("\n"));
+  robots.forEach((robot) => {
+    robot.move();
+    robot.draw(canvas);
+  });
+  const robots_end_positions = robots.map(({ position }) => position);
+  const score = calc_safety_score(robots_end_positions, grid);
+  if (i === 0) {
+    safety_score.score = score;
+    safety_score.frame = i;
+  } else if (score < safety_score.score) {
+    safety_score.score = score;
+    safety_score.frame = i+1;
+    await writeFile(
+      `src/day_14/canvas/canvas_${i}.txt`,
+      canvas.map((row) => row.join("")).join("\n"),
+    );
+  }
 }
 
-// const end_grid = structuredClone(grid)
-
-// robots.forEach((robot) => {
-//   const { x, y } = robot.position;
-//   let curr = end_grid[y][x];
-//   if (typeof curr === "string") end_grid[y][x] = 1;
-//   else {
-//     curr++;
-//     end_grid[y][x] = curr;
-//   }
-// });
-
-// console.log("\nEnd grid:");
-// console.log(end_grid.map((row) => row.join("")).join("\n"));
-
-// filter robots by quadrant
-const middle_x = Math.floor(GRID_X / 2);
-const middle_y = Math.floor(GRID_Y / 2);
-const robots_end_positions = robots.map(({ position }) => position);
-
-const robots_by_quadrants = {
-  top_left: robots_end_positions.filter(({ x, y }) => x < middle_x && y < middle_y).length,
-  top_right: robots_end_positions.filter(({ x, y }) => x > middle_x && y < middle_y).length,
-  bottom_left: robots_end_positions.filter(({ x, y }) => x < middle_x && y > middle_y).length,
-  bottom_right: robots_end_positions.filter(({ x, y }) => x > middle_x && y > middle_y).length,
-}
-
-console.log("\nRobots by quadrants:");
-console.log(robots_by_quadrants);
-console.log(`\nSafety Score: ${robots_by_quadrants.top_left * robots_by_quadrants.top_right * robots_by_quadrants.bottom_left * robots_by_quadrants.bottom_right}`);
-
-
-console.log("NEW ROBOT");
-const roboto = new Robot({ x: 0, y: 0 }, { x: 4, y: 4 }, grid);
-roboto.time_shift(100);
-console.log(roboto.position);
+console.log("Best (lowest) Safety score:", safety_score);
