@@ -6,7 +6,7 @@ type GridType = string[][];
 type Direction = [number, number];
 type Coordinates = { x: number; y: number };
 type Box = Coordinates & { symbol: string };
-type LongBox = Coordinates & { bracket_type: "[" | "]" };
+type Bracket = Coordinates & { bracket_type: "[" | "]" };
 type DirectionSymbol = "^" | "v" | "<" | ">";
 
 const PATH = "src/day_15/input.txt";
@@ -53,10 +53,10 @@ const example_robot_movements = "<^^>>>vv<v>>v<<".split("") as DirectionSymbol[]
 
 const example_grid_part2 = [
   "##############",
-  "##...#..##..##",
+  "##......##..##",
   "##...[].....##",
   "##....[][]..##",
-  "##.....@[]..##",
+  "##....@.[]..##",
   "##..........##",
   "##############",
 ].map((row) => row.split(""));
@@ -168,7 +168,7 @@ class Robot {
    * @returns 
    */
   push_boxv2(start: Coordinates, direction: Direction) {
-    const visited: Record<string, LongBox[]> = {};
+    const visited: Record<string, Bracket[]> = {};
     let { x, y } = start;
     const [dx, dy] = direction;
     const move_symbol = this.movement_to_symbol[`${dx},${dy}`];
@@ -199,7 +199,23 @@ class Robot {
     }
 
     console.log(`Visited: ${JSON.stringify(visited)}`);
-    //TODO: Implement the actual box pushing (visited will be the next stack that need to be emptied)
+    // Implement the actual box pushing (visited will be the next stack that need to be emptied)
+    // 1. loop over visited
+    // 2. move each box by direction
+    // ? Note: we don't loop over visited[key] and update the position of one individual bracket at a time
+    // ? because we need to move the entire box at once. Otherwise there would be a problem in horizontal movement
+    // ? where there would be a bug
+    for (const key in visited) {
+      const [{x:x1, y:y1}, {x:x2, y:y2}] = visited[key];
+      const [nx1, ny1, nx2, ny2] = [x1, y1 + dy, x2, y2 + dy];
+      this.grid[y1][x1] = ".";
+      this.grid[y2][x2] = ".";
+      this.grid[ny1][nx1] = "[";
+      this.grid[ny2][nx2] = "]";
+      
+      
+      
+    }
   }
   /**
    * From a single bracket (either type "[" or "]"), and its coordinates,
@@ -212,7 +228,7 @@ class Robot {
   get_box(
     position: Coordinates, // box position
     bracket_type: "[" | "]",
-  ): LongBox[] {
+  ): Bracket[] {
     let { x: cx, y: cy } = position;
     return bracket_type === "["
       ? [
