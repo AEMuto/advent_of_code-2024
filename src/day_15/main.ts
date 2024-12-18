@@ -1,6 +1,9 @@
-import { readFile, writeFile } from "fs/promises";
-import { existsSync } from "fs";
+import { rm, writeFile, readFile} from "fs/promises";
+import { existsSync, appendFileSync } from "fs";
 import { downloadInput } from "../utils/download.js";
+
+await rm("src/day_15/frames.txt");
+await writeFile("src/day_15/frames.txt", "");
 
 type GridType = string[][];
 type Direction = [number, number];
@@ -23,7 +26,8 @@ const file = await readFile(PATH, "utf-8");
 const [input1, input2] = file.split("\n\n");
 
 const grid = input1.split("\n").map((row) => row.split(""));
-const movements = input2.split("") as DirectionSymbol[];
+const double_width_grid = double_width(grid);
+const movements = input2.split("\n").join("").split("") as DirectionSymbol[];
 
 function double_width(grid: GridType): GridType {
   return grid.map(
@@ -39,47 +43,58 @@ function double_width(grid: GridType): GridType {
   );
 }
 
-const example_grid = [
-  "########",
-  "#..O.O.#",
-  "##@.O..#",
-  "#...O..#",
-  "#.#.O..#",
-  "#...O..#",
-  "#......#",
-  "########",
-].map((row) => row.split(""));
-const example_robot_movements = "<^^>>>vv<v>>v<<".split("") as DirectionSymbol[];
+// const example_grid = [
+//   "########",
+//   "#..O.O.#",
+//   "##@.O..#",
+//   "#...O..#",
+//   "#.#.O..#",
+//   "#...O..#",
+//   "#......#",
+//   "########",
+// ].map((row) => row.split(""));
+// const example_robot_movements = "<^^>>>vv<v>>v<<".split("") as DirectionSymbol[];
 
-const example_grid_part2 = [
-  "##############",
-  "##......##..##",
-  "##...[].....##",
-  "##....[][]..##",
-  "##....@.[]..##",
-  "##..........##",
-  "##############",
-].map((row) => row.split(""));
-const example_robot_movements_part2 = "^^".split("") as DirectionSymbol[];
+// const example_grid_part2 = [
+//   "#######",
+//   "#...#.#",
+//   "#.....#",
+//   "#..OO@#",
+//   "#..O..#",
+//   "#.....#",
+//   "#######",
+// ].map((row) => row.split(""));
+// const example_robot_movements_part2 = "<vv<<^^<<^^".split("") as DirectionSymbol[];
 // const example_grid_part2_double = double_width(example_grid_part2);
 
-const big_example_grid = [
-  "##########",
-  "#..O..O.O#",
-  "#......O.#",
-  "#.OO..O.O#",
-  "#..O@..O.#",
-  "#O#..O...#",
-  "#O..O..O.#",
-  "#.OO.O.OO#",
-  "#....O...#",
-  "##########",
-].map((row) => row.split(""));
+// const big_example_grid = [
+//   "##########",
+//   "#..O..O.O#",
+//   "#......O.#",
+//   "#.OO..O.O#",
+//   "#..O@..O.#",
+//   "#O#..O...#",
+//   "#O..O..O.#",
+//   "#.OO.O.OO#",
+//   "#....O...#",
+//   "##########",
+// ].map((row) => row.split(""));
 
-const big_example_robot_movements =
-  "<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^>^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^".split(
-    "",
-  ) as DirectionSymbol[];
+// const big_example_robot_movements = [
+// "<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^",
+// "vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v",
+// "><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<",
+// "<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^",
+// "^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><",
+// "^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^",
+// ">^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^",
+// "<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>",
+// "^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>",
+// "v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^",
+// ].join("").split("") as DirectionSymbol[];
+
+// const big_example_grid_double = double_width(big_example_grid);
+
 
 class Robot {
   position: Coordinates;
@@ -87,6 +102,7 @@ class Robot {
   grid: GridType;
   rows: number;
   cols: number;
+  moves: number = 0;
 
   symbol_to_movement: Record<DirectionSymbol, Direction> = {
     "^": [0, -1],
@@ -119,13 +135,13 @@ class Robot {
 
   move() {
     this.movements.forEach((move, i) => {
-      //if (i > 5) return;
-      console.log(`\n####### Move: ${i + 1} #######`);
+
+      // console.log(`\n####### Move: ${i + 1} #######`);
       // console.log(`Current move: ${move}`);
-      this.draw(`0${i + 1}_start`);
+      // this.draw(`0${i + 1}_start`, move);
       const { x, y } = this.position;
       const [dx, dy] = this.symbol_to_movement[move];
-      console.log(`"${move}" converted to: ${dx}, ${dy}`);
+      // console.log(`"${move}" converted to: ${dx}, ${dy}`);
 
       const nx = x + dx;
       const ny = y + dy;
@@ -134,8 +150,8 @@ class Robot {
 
       if (this.grid[ny][nx] === "#") {
         // hit a wall, do nothing
-        console.log("Hit a wall, do nothing");
-        this.draw(`0${i + 1}`);
+        // console.log("Hit a wall, do nothing");
+        // this.draw(`0${i + 1}`, move, "Hit a wall, no movement.");
         return;
       }
 
@@ -143,8 +159,15 @@ class Robot {
         // hit a box, try to push it
         // console.log("Hit a box, try to push it");
         if (this.grid[ny][nx] === "O") this.push_boxv1({ x: nx, y: ny }, [dx, dy]);
-        if (this.grid[ny][nx] === "[" || this.grid[ny][nx] === "]")
-          this.push_boxv2({ x: nx, y: ny }, [dx, dy]);
+        if (this.grid[ny][nx] === "[" || this.grid[ny][nx] === "]") {
+          const box_pushed = this.push_boxv2({ x: nx, y: ny }, [dx, dy]);
+          if (!box_pushed) {
+            // this.draw(`0${i + 1}`, move, "Box could not be pushed, hit a wall.");
+            return;
+          } else {
+            this.draw(`0${i + 1}`, move, "Box pushed successfully.");
+          }
+        }
       }
 
       if (this.grid[ny][nx] === ".") {
@@ -155,7 +178,7 @@ class Robot {
         this.grid[ny][nx] = "@"; // robot takes the place of a dot
       }
 
-      this.draw(`0${i + 1}`);
+      // this.draw(`0${i + 1}`, move);
     });
   }
 
@@ -165,7 +188,7 @@ class Robot {
    * A box or "[]" is represented as a 2-tuple of LongBox objects which have the coordinates of the brackets and the bracket type ("[" or "]")
    * @param start The coordinates of the detected bracket near the robot (see move method)
    * @param direction The current direction of the robot
-   * @returns 
+   * @returns
    */
   push_boxv2(start: Coordinates, direction: Direction) {
     const visited: Record<string, Bracket[]> = {};
@@ -181,42 +204,62 @@ class Robot {
       for (const bracket of current_box) {
         const key = `${current_box[0].x},${current_box[0].y}`; // key is the first bracket as determined in get_box
         const { x: cx, y: cy, bracket_type } = bracket;
-        console.log(`Current cell: ${cx}, ${cy}, ${bracket_type}`);
-        if (Object.hasOwn(visited, key)) continue; // Skip if we have already visited this cell
+        // console.log(`Current cell: ${cx}, ${cy}, ${bracket_type}`);
+        if (Object.hasOwn(visited, key) && bracket_type === "[") continue; // Skip if we have already visited this [
         visited[key] = this.get_box({ x: cx, y: cy }, bracket_type);
 
         let nx, ny;
         // Width is the double of the original grid, but the height is the same
-        if (move_symbol === "<" || move_symbol === ">") [nx, ny] = [cx + dx * 2, cy];
+        if (move_symbol === "<" || move_symbol === ">"){ 
+          [nx, ny] = [cx + dx, cy];
+          if (this.grid[ny][nx] === ".") break; // we have reached the end of the box
+          [nx, ny] = [cx + dx * 2, cy];
+        }
         else [nx, ny] = [cx, cy + dy];
 
         if (this.grid[ny][nx] === "#")
-          return console.log("Box stack cannot be pushed: last box adjacent to a wall");
+          return false;
         if (this.grid[ny][nx] === "[" || this.grid[ny][nx] === "]") {
           boxes_stack.push(this.get_box({ x: nx, y: ny }, this.grid[ny][nx] as "[" | "]"));
         }
       }
     }
 
-    console.log(`Visited: ${JSON.stringify(visited)}`);
+    // console.log(`Visited: ${JSON.stringify(visited)}`);
     // Implement the actual box pushing (visited will be the next stack that need to be emptied)
-    // 1. loop over visited
-    // 2. move each box by direction
-    // ? Note: we don't loop over visited[key] and update the position of one individual bracket at a time
-    // ? because we need to move the entire box at once. Otherwise there would be a problem in horizontal movement
-    // ? where there would be a bug
-    for (const key in visited) {
-      const [{x:x1, y:y1}, {x:x2, y:y2}] = visited[key];
-      const [nx1, ny1, nx2, ny2] = [x1, y1 + dy, x2, y2 + dy];
-      this.grid[y1][x1] = ".";
-      this.grid[y2][x2] = ".";
-      this.grid[ny1][nx1] = "[";
-      this.grid[ny2][nx2] = "]";
-      
-      
-      
+    // sort by x des/asc or y des/asc depending on the direction before moving to the first empty space
+    // "<" => sort by x ascending, ">" => sort by x descending, "^" => sort by y ascending, "v" => sort by y descending
+    let brackets;
+
+    if (move_symbol === "<")
+      brackets = Object.values(structuredClone(visited))
+        .flat()
+        .sort((a, b) => a.x - b.x);
+    if (move_symbol === ">")
+      brackets = Object.values(structuredClone(visited))
+        .flat()
+        .sort((a, b) => b.x - a.x);
+    if (move_symbol === "^")
+      brackets = Object.values(structuredClone(visited))
+        .flat()
+        .sort((a, b) => a.y - b.y);
+    if (move_symbol === "v")
+      brackets = Object.values(structuredClone(visited))
+        .flat()
+        .sort((a, b) => b.y - a.y);
+
+    // console.log(`Sorted brackets: ${JSON.stringify(brackets)}`);
+
+    for (const bracket of brackets!) {
+      const { x: cx, y: cy, bracket_type } = bracket;
+      const [nx, ny] = [cx + dx, cy + dy];
+      this.grid[ny][nx] = bracket_type;
+      this.grid[cy][cx] = ".";
     }
+
+    return true;
   }
+
   /**
    * From a single bracket (either type "[" or "]"), and its coordinates,
    * we can determine the other bracket that is part of the same box.
@@ -278,15 +321,17 @@ class Robot {
     }
   }
 
-  async draw(frame: string) {
-    const output = this.grid.map((row) => row.join("")).join("\n");
-    await writeFile(`src/day_15/frames/frame_${frame}.txt`, output);
+  draw(frame: string, move_symbol: DirectionSymbol, additional?: string) {
+    const header = `Frame: ${frame}, Move: ${move_symbol}`;
+    const additional_info = additional ? `, ${additional}` : "";
+    const grid = this.grid.map((row) => row.join("")).join("\n");
+    appendFileSync(`src/day_15/frames.txt`, `${header}${additional_info}\n${grid}\n-----------\n`);
   }
 
   get_result() {
     const boxes_positions = this.grid.reduce((acc, row, y) => {
       row.forEach((cell, x) => {
-        if (cell === "O") acc.push({ x, y });
+        if (cell === "O" || cell === "[") acc.push({ x, y });
       });
       return acc;
     }, [] as Coordinates[]);
@@ -297,9 +342,10 @@ class Robot {
       return acc;
     }, 0);
   }
+
 }
 
-const roboto_start = example_grid_part2.reduce(
+const roboto_start = double_width_grid.reduce(
   (acc, row, y) => {
     const x = row.indexOf("@");
     if (x !== -1) acc = { x, y };
@@ -308,10 +354,11 @@ const roboto_start = example_grid_part2.reduce(
   { x: 0, y: 0 },
 );
 
-const roboto = new Robot(roboto_start, example_robot_movements_part2, example_grid_part2);
+const roboto = new Robot(roboto_start, movements, double_width_grid);
 roboto.move();
-const result_part1 = roboto.get_result();
+const result = roboto.get_result();
 
-console.log(`Result part 1: ${result_part1}`);
+console.log(`\n####### THE END #######\nResult: ${result}`);
 
-// console.log(example_grid_part2_double.map((row) => row.join("")).join("\n"));
+// // console.log(example_grid_part2_double.map((row) => row.join("")).join("\n"));
+
