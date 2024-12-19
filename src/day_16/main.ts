@@ -1,4 +1,4 @@
-import { readFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { downloadInput } from "../utils/download.js";
 import PriorityQueue from "./PriorityQueue.js";
@@ -39,7 +39,7 @@ class Reindeer {
   start: Coordinate;
   end: Coordinate;
   grid: string[][];
-  visited: Set<string> = new Set();
+  visited: Record<string, State> = {};
   queue: PriorityQueue<State>;
 
   constructor(grid: string[][]) {
@@ -60,7 +60,7 @@ class Reindeer {
     this.queue = new PriorityQueue<State>((a, b) => a - b); // Min heap
   }
 
-  compute_best_path(): number {
+  compute_best_path(): {} {
     this.queue.push({ ...this.start, dir: "E", score: 0 }, 0);
     // console.log(JSON.stringify(this.queue));
     while (!this.queue.isEmpty()) {
@@ -70,11 +70,14 @@ class Reindeer {
       // console.log("Current position symbol: ", this.grid[y][x])
 
       // If reached the end, return the score
-      if (x === this.end.x && y === this.end.y) return score;
+      if (x === this.end.x && y === this.end.y) {
+        const visited = Object.values(this.visited)
+        return { ...currentState, visited, visited_size: Object.keys(this.visited).length };
+      }
 
       const stateKey = `${x},${y},${dir}`;
-      if (this.visited.has(stateKey)) continue;
-      this.visited.add(stateKey);
+      if (Object.hasOwn(this.visited, stateKey)) continue;
+      this.visited[stateKey] = currentState;
 
       // Move forward
       const [dx, dy] = this.directions[dir];
@@ -105,8 +108,52 @@ class Reindeer {
     if (!start || !end) throw new Error("Invalid grid: missing start or end");
     return [start, end];
   }
+
+  compute_paths(visited: { [key: string]: State }, end: Coordinate, best_score: number): Set<string> {
+    const best_tiles = new Set<string>();
+    const stack: State[] = [];
+  
+    // Step 1: Start with end state(s)
+    for (const key in visited) {
+      const state = visited[key];
+      if (state.x === end.x && state.y === end.y && state.score === best_score) {
+        stack.push(state);
+        best_tiles.add(`${state.x},${state.y}`);
+      }
+    }
+  
+    // Step 2: Reverse traverse to find all optimal states
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      const { x, y, dir, score } = current;
+  
+      // Reverse movements: Check all possible predecessors
+      for (const [prevDir, [dx, dy]] of Object.entries(this.directions)) {
+        const [prevX, prevY] = [x - dx, y - dy];
+        const prevKey = `${prevX},${prevY},${prevDir}`;
+        const prevState = visited[prevKey];
+  
+        // If a previous state exists and has a valid transition
+        if (
+          prevState &&
+          (prevState.score + 1 === score || prevState.score + 1000 === score) // Forward or rotation
+        ) {
+          const posKey = `${prevX},${prevY}`;
+          if (!best_tiles.has(posKey)) {
+            best_tiles.add(posKey);
+            stack.push(prevState); // Continue backtracking
+          }
+        }
+      }
+    }
+  
+    return best_tiles;
+  }
+
 }
 
-const reindeer_proto_x1 = new Reindeer(grid);
+const reindeer_proto_x1 = new Reindeer(example);
 
-console.log(reindeer_proto_x1.compute_best_path());
+const result = reindeer_proto_x1.compute_best_path();
+
+await writeFile("src/day_16/output.json", JSON.stringify(result, null, 2));
