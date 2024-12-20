@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { downloadInput } from "../utils/download.js";
-import { isWithinBounds } from "../utils/grids.js";
+import { isWithinBounds } from "../utils/utils.js";
 
 const PATH = "src/day_10/input.txt";
 

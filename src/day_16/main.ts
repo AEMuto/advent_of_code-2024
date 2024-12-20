@@ -9,13 +9,14 @@ type Coordinate = { x: number; y: number };
 type Direction = "N" | "E" | "S" | "W";
 type DirectionsMap = Record<Direction, [number, number]>; // [dx, dy]
 type RotationsMap = Record<Direction, [Direction, Direction]>;
+type OppositesMap = Record<Direction, Direction>;
 type State = Coordinate & { dir: Direction; score: number };
 
 if (!existsSync(PATH)) await downloadInput(16);
 const file = await readFile(PATH, "utf-8");
 const grid = file.split("\n").map((line) => line.split(""));
 
-const example = [
+const example_small = [
   "###############",
   "#.......#....E#",
   "#.#.###.#.###.#",
@@ -33,21 +34,43 @@ const example = [
   "###############",
 ].map((line) => line.split(""));
 
+const example = [
+  "#################",
+  "#...#...#...#..E#",
+  "#.#.#.#.#.#.#.#.#",
+  "#.#.#.#...#...#.#",
+  "#.#.#.#.###.#.#.#",
+  "#...#.#.#.....#.#",
+  "#.#.#.#.#.#####.#",
+  "#.#...#.#.#.....#",
+  "#.#.#####.#.###.#",
+  "#.#.#.......#...#",
+  "#.#.###.#####.###",
+  "#.#.#...#.....#.#",
+  "#.#.#.#####.###.#",
+  "#.#.#.........#.#",
+  "#.#.#.#########.#",
+  "#S#.............#",
+  "#################",
+].map((line) => line.split(""));
+
 class Reindeer {
   directions: DirectionsMap;
   rotations: RotationsMap;
+  opposites: OppositesMap;
   start: Coordinate;
   end: Coordinate;
   grid: string[][];
   visited: Record<string, State> = {};
+  state: State;
   queue: PriorityQueue<State>;
 
   constructor(grid: string[][]) {
     this.directions = {
       N: [0, -1], // north
-      S: [0, 1],  // south
+      S: [0, 1], // south
       W: [-1, 0], // west
-      E: [1, 0],  // east
+      E: [1, 0], // east
     };
     this.rotations = {
       N: ["W", "E"],
@@ -55,12 +78,35 @@ class Reindeer {
       S: ["E", "W"],
       W: ["S", "N"],
     };
+    this.opposites = {
+      N: "S",
+      S: "N",
+      E: "W",
+      W: "E",
+    };
     [this.start, this.end] = this.find_start_end(grid);
     this.grid = grid;
     this.queue = new PriorityQueue<State>((a, b) => a - b); // Min heap
+    this.state = { ...this.start, dir: "E", score: 0 };
   }
 
-  compute_best_path(): {} {
+  find_start_end(grid: string[][]): [Coordinate, Coordinate] {
+    let start: Coordinate | null = null;
+    let end: Coordinate | null = null;
+    for (let y = 0; y < grid.length; y++) {
+      for (let x = 0; x < grid[y].length; x++) {
+        if (grid[y][x] === "S") start = { x, y };
+        if (grid[y][x] === "E") end = { x, y };
+      }
+    }
+    if (!start || !end) throw new Error("Invalid grid: missing start or end");
+    console.log("Start:", start, "End:", end);
+    return [start, end];
+  }
+
+  compute_best_path():
+    | { score: number; visited: Record<string, { x: number; y: number; scores: number[] }> }
+    | undefined {
     this.queue.push({ ...this.start, dir: "E", score: 0 }, 0);
     // console.log(JSON.stringify(this.queue));
     while (!this.queue.isEmpty()) {
@@ -69,15 +115,24 @@ class Reindeer {
       const { x, y, dir, score } = currentState;
       // console.log("Current position symbol: ", this.grid[y][x])
 
-      // If reached the end, return the score
-      if (x === this.end.x && y === this.end.y) {
-        const visited = Object.values(this.visited)
-        return { ...currentState, visited, visited_size: Object.keys(this.visited).length };
-      }
-
       const stateKey = `${x},${y},${dir}`;
       if (Object.hasOwn(this.visited, stateKey)) continue;
       this.visited[stateKey] = currentState;
+      this.state = currentState;
+
+      // If reached the end, return the score
+      if (x === this.end.x && y === this.end.y) {
+        const visited = Object.values(this.visited).reduce<
+          Record<string, { x: number; y: number; scores: number[] }>
+        >((acc, { x, y, score }) => {
+          const key = `${x},${y}`;
+          const new_state = { x, y, scores: [score] };
+          if (key in acc) acc[key].scores.includes(score) ? null : acc[key].scores.push(score);
+          else acc[key] = new_state;
+          return acc;
+        }, {});
+        return { score, visited };
+      }
 
       // Move forward
       const [dx, dy] = this.directions[dir];
@@ -93,67 +148,86 @@ class Reindeer {
         this.queue.push({ x, y, dir: newDir, score: new_score }, new_score);
       }
     }
-    throw new Error("No path found");
+    // If no path found
+    // reset visited
+    this.visited = {};
+    this.state = { ...this.start, dir: "E", score: 0 };
+    console.error("No path found");
+    return;
   }
 
-  find_start_end(grid: string[][]): [Coordinate, Coordinate] {
-    let start: Coordinate | null = null;
-    let end: Coordinate | null = null;
-    for (let y = 0; y < grid.length; y++) {
-      for (let x = 0; x < grid[y].length; x++) {
-        if (grid[y][x] === "S") start = { x, y };
-        if (grid[y][x] === "E") end = { x, y };
-      }
+  compute_paths(
+    visited: Record<string, { x: number; y: number; scores: number[] }>,
+  ): { best_tiles_length: number; best_tiles: Coordinate[] } | undefined {
+    if (Object.keys(this.visited).length === 0) {
+      console.error(
+        "There are no stored tiles in the 'visited' record. You need to call compute_best_path() method first, before calling compute_paths() method.",
+      );
+      return;
     }
-    if (!start || !end) throw new Error("Invalid grid: missing start or end");
-    return [start, end];
-  }
 
-  compute_paths(visited: { [key: string]: State }, end: Coordinate, best_score: number): Set<string> {
     const best_tiles = new Set<string>();
-    const stack: State[] = [];
-  
-    // Step 1: Start with end state(s)
-    for (const key in visited) {
-      const state = visited[key];
-      if (state.x === end.x && state.y === end.y && state.score === best_score) {
-        stack.push(state);
-        best_tiles.add(`${state.x},${state.y}`);
-      }
-    }
-  
-    // Step 2: Reverse traverse to find all optimal states
+    const stack: { x: number; y: number; scores: number[] }[] = [];
+
+    // Step 1: Start with end state(s) (compute_best_path() should have been called first, so the visited record is populated)
+    const start_state = { x: this.state.x, y: this.state.y, scores: [this.state.score] };
+    stack.push(start_state);
+    best_tiles.add(`${this.state.x},${this.state.y}`);
+
+    // Step 2: Reverse traverse to find all optimal tiles
     while (stack.length > 0) {
       const current = stack.pop()!;
-      const { x, y, dir, score } = current;
-  
+      // console.log("\ncurrent", current);
+      const { x, y, scores } = current;
+
       // Reverse movements: Check all possible predecessors
-      for (const [prevDir, [dx, dy]] of Object.entries(this.directions)) {
-        const [prevX, prevY] = [x - dx, y - dy];
-        const prevKey = `${prevX},${prevY},${prevDir}`;
+      for (let [_, [dx, dy]] of Object.entries(this.directions)) {
+        const [prevX, prevY] = [x + dx, y + dy];
+        // prevDir should be the opposite of current direction
+        const prevKey = `${prevX},${prevY}`;
+        // console.log("prevKey", prevKey);
         const prevState = visited[prevKey];
-  
-        // If a previous state exists and has a valid transition
-        if (
-          prevState &&
-          (prevState.score + 1 === score || prevState.score + 1000 === score) // Forward or rotation
-        ) {
+        // console.log("prevState", prevState);
+
+        // old version
+        //! give wrong results, got 631 tiles but its too high
+        if (prevState && prevState.scores.some((score) => scores.includes(score + 1))) {
           const posKey = `${prevX},${prevY}`;
           if (!best_tiles.has(posKey)) {
             best_tiles.add(posKey);
             stack.push(prevState); // Continue backtracking
           }
         }
+        // new version
+
       }
     }
-  
-    return best_tiles;
-  }
 
+    return {
+      best_tiles_length: best_tiles.size,
+      best_tiles: [...best_tiles].map((tile) => {
+        const [x, y] = tile.split(",").map(Number);
+        return { x, y };
+      }),
+    };
+  }
 }
 
-const reindeer_proto_x1 = new Reindeer(example);
+const reindeer_proto_x1 = new Reindeer(grid);
 
 const result = reindeer_proto_x1.compute_best_path();
+await writeFile("src/day_16/compute_best_path-result.json", JSON.stringify(result, null, 2));
 
-await writeFile("src/day_16/output.json", JSON.stringify(result, null, 2));
+if (!result) throw new Error("No path found");
+const paths = reindeer_proto_x1.compute_paths(result.visited);
+await writeFile("src/day_16/compute_paths-result.json", JSON.stringify(paths, null, 2));
+const coordinates = paths?.best_tiles;
+// change # to █ and . to " "
+let grid_visualization = reindeer_proto_x1.grid.map((row) => row.map<string>((cell) => (cell === "#" ? "█" : " ")));
+coordinates?.forEach(({ x, y }) => {
+  grid_visualization[y][x] = "•";
+});
+await writeFile(
+  "src/day_16/grid_visualization.txt",
+  grid_visualization.map((row) => row.join("")).join("\n"),
+);
